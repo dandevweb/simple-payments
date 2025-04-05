@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use app\Enums\UserTypeEnum;
+use App\Enums\UserTypeEnum;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\Wallet;
