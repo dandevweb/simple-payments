@@ -10,9 +10,6 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
         User::factory()
@@ -22,7 +19,6 @@ class DatabaseSeeder extends Seeder
                 Wallet::factory()->create(['user_id' => $user->id]);
             });
 
-        // Create 5 merchants
         User::factory()
             ->count(5)
             ->state(['type' => UserTypeEnum::Merchant])

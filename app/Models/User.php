@@ -8,15 +8,30 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
+use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * @property-read int $id
+ * @property-read string $name
+ * @property-read string $email
+ * @property-read string $password
+ * @property-read string $remember_token
+ * @property-read Carbon $email_verified_at
+ * @property-read Carbon $created_at
+ * @property-read Carbon $updated_at
+ * @property-read UserTypeEnum $type
+ */
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens;
 
     protected $fillable = [
         'name',
         'email',
         'password',
+        'type',
+        'balance',
     ];
 
     protected $hidden = [
@@ -36,6 +51,11 @@ class User extends Authenticatable
     public function wallet(): HasOne
     {
         return $this->hasOne(Wallet::class);
+    }
+
+    public function isMerchant(): bool
+    {
+        return $this->type === UserTypeEnum::Merchant;
     }
 
 }
