@@ -14,8 +14,8 @@ use Illuminate\Support\Carbon;
  * @property-read  int $to_wallet_id
  * @property-read  float $value
  * @property-read  Carbon $transferred_at
- * +@property-read  Wallet $fromWallet
- * +@property-read  Wallet $toWallet
+ * @property-read  Wallet $fromWallet
+ * @property-read  Wallet $toWallet
  *
  */
 #[ObservedBy(TransferObserver::class)]

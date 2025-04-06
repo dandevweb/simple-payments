@@ -13,11 +13,11 @@ class WalletRepository
 
     public function decrementBalance(Wallet $wallet, float $amount): void
     {
-        $wallet->decrement('balance', $amount);
+        $wallet->update(['balance' => $wallet->balance - $amount]);
     }
 
     public function incrementBalance(Wallet $wallet, float $amount): void
     {
-        $wallet->increment('balance', $amount);
+        $wallet->update(['balance' => $wallet->balance + $amount]);
     }
 }

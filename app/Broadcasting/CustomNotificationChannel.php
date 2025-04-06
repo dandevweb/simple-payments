@@ -3,9 +3,8 @@
 namespace App\Broadcasting;
 
 use App\Exceptions\TransferException;
-use App\Models\User;
+use App\Notifications\TransferReceivedNotification;
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Http;
 
 class CustomNotificationChannel
@@ -14,7 +13,7 @@ class CustomNotificationChannel
      * @throws TransferException
      * @throws ConnectionException
      */
-    public function send($notifiable, Notification $notification): void
+    public function send($notifiable, TransferReceivedNotification $notification): void
     {
         $payload = $notification->toCustom($notifiable);
 
