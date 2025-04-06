@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read int $id
  * @property-read int $user_id
  * @property-read int $balance
+ * @property-read User $user
  */
 class Wallet extends Model
 {

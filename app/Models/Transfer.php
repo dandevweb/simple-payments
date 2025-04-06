@@ -2,9 +2,23 @@
 
 namespace App\Models;
 
+use App\Observers\TransferObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property-read  int $id
+ * @property-read  int $from_wallet_id
+ * @property-read  int $to_wallet_id
+ * @property-read  float $value
+ * @property-read  Carbon $transferred_at
+ * +@property-read  Wallet $fromWallet
+ * +@property-read  Wallet $toWallet
+ *
+ */
+#[ObservedBy(TransferObserver::class)]
 class Transfer extends Model
 {
     public $timestamps = false;

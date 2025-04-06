@@ -6,6 +6,7 @@ use App\Enums\UserTypeEnum;
 use App\Exceptions\TransferException;
 use App\Models\User;
 use App\Services\TransferService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use PHPUnit\Framework\Attributes\Test;
@@ -29,27 +30,31 @@ class TransferServiceTest extends TestCase
         $this->transferService = app(TransferService::class);
     }
 
+    /**
+     * @throws Throwable
+     * @throws ConnectionException
+     */
     #[Test]
     public function merchantCannotSendMoney(): void
     {
-        $payer = User::factory()->create(['type' => UserTypeEnum::Merchant]);
-        $payer->wallet()->create(['balance' => 100.00]);
-        $payee = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payee->wallet()->create(['balance' => 0]);
+        $payer = $this->createUserWithBalance(UserTypeEnum::Merchant, 100.00);
+        $payee = $this->createUserWithBalance(UserTypeEnum::Common, 0);
 
         $this->expectException(TransferException::class);
-        $this->expectExceptionMessage('Merchant cannot sendo money.');
+        $this->expectExceptionMessage('Merchant cannot send money.');
 
         $this->transferService->execute(50.00, $payer->id, $payee->id);
     }
 
+    /**
+     * @throws Throwable
+     * @throws ConnectionException
+     */
     #[Test]
     public function insufficientBalanceFails(): void
     {
-        $payer = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payer->wallet()->create(['balance' => 20.00]);
-        $payee = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payee->wallet()->create(['balance' => 0]);
+        $payer = $this->createUserWithBalance(UserTypeEnum::Common, 20.00);
+        $payee = $this->createUserWithBalance(UserTypeEnum::Common, 0);
 
         $this->expectException(TransferException::class);
         $this->expectExceptionMessage('Insufficient balance.');
@@ -57,16 +62,19 @@ class TransferServiceTest extends TestCase
         $this->transferService->execute(50.00, $payer->id, $payee->id);
     }
 
+    /**
+     * @throws TransferException
+     * @throws Throwable
+     * @throws ConnectionException
+     */
     #[Test]
     public function successfulTransferWithAuthorization(): void
     {
         $this->authorizerSuccessResponse();
         $this->notifySuccessResponse();
 
-        $payer = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payer->wallet()->create(['balance' => 100.00]);
-        $payee = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payee->wallet()->create(['balance' => 0]);
+        $payer = $this->createUserWithBalance(UserTypeEnum::Common, 100.00);
+        $payee = $this->createUserWithBalance(UserTypeEnum::Common, 0);
 
         $this->transferService->execute(50.00, $payer->id, $payee->id);
 
@@ -74,15 +82,17 @@ class TransferServiceTest extends TestCase
         $this->assertEquals(50.00, $payee->wallet->fresh()->balance);
     }
 
+    /**
+     * @throws Throwable
+     * @throws ConnectionException
+     */
     #[Test]
     public function transferFailsIfNotAuthorized(): void
     {
         $this->authorizerFailureResponse();
 
-        $payer = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payer->wallet()->create(['balance' => 100.00]);
-        $payee = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payee->wallet()->create(['balance' => 0]);
+        $payer = $this->createUserWithBalance(UserTypeEnum::Common, 100.00);
+        $payee = $this->createUserWithBalance(UserTypeEnum::Common, 0);
 
         $this->expectException(TransferException::class);
         $this->expectExceptionMessage('Unauthorized transfer.');
@@ -90,16 +100,18 @@ class TransferServiceTest extends TestCase
         $this->transferService->execute(50.00, $payer->id, $payee->id);
     }
 
+    /**
+     * @throws Throwable
+     * @throws ConnectionException
+     */
     #[Test]
     public function transferFailsIfNotificationFails(): void
     {
         $this->authorizerSuccessResponse();
         $this->notifyFailureResponse();
 
-        $payer = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payer->wallet()->create(['balance' => 100.00]);
-        $payee = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payee->wallet()->create(['balance' => 0]);
+        $payer = $this->createUserWithBalance(UserTypeEnum::Common, 100.00);
+        $payee = $this->createUserWithBalance(UserTypeEnum::Common, 0);
 
         $this->expectException(TransferException::class);
         $this->expectExceptionMessage('Failed to send notification.');
@@ -110,42 +122,32 @@ class TransferServiceTest extends TestCase
         $this->assertEquals(0, $payee->wallet->fresh()->balance);
     }
 
-    #[Test]
-    public function transferFailsWithZeroOrNegativeValue(): void
-    {
-        $payer = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payer->wallet()->create(['balance' => 100.00]);
-        $payee = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payee->wallet()->create(['balance' => 0]);
-
-        $this->expectException(TransferException::class);
-        $this->expectExceptionMessage('Unauthorized transfer.');
-
-        // Testa valor zero
-        $this->transferService->execute(0, $payer->id, $payee->id);
-
-        // Testa valor negativo
-        $this->transferService->execute(-50.00, $payer->id, $payee->id);
-    }
-
+    /**
+     * @throws TransferException
+     * @throws Throwable
+     * @throws ConnectionException
+     */
     #[Test]
     public function transferFailsWithNonExistentPayer(): void
     {
-        $payee = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payee->wallet()->create(['balance' => 0]);
+        $payee = $this->createUserWithBalance(UserTypeEnum::Common, 0);
 
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
 
         $this->transferService->execute(50.00, 999, $payee->id);
     }
 
+    /**
+     * @throws TransferException
+     * @throws Throwable
+     * @throws ConnectionException
+     */
     #[Test]
     public function transferFailsWithNonExistentPayee(): void
     {
-        $payer = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payer->wallet()->create(['balance' => 100.00]);
+        $payer = $this->createUserWithBalance(UserTypeEnum::Common, 100.00);
 
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
 
         $this->transferService->execute(50.00, $payer->id, 999);
     }

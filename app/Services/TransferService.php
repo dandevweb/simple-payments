@@ -9,6 +9,7 @@ use App\Repositories\WalletRepository;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
@@ -24,40 +25,60 @@ class TransferService
      */
     public function execute(float $value, int $payerId, int $payeeId): void
     {
-        $payer = User::with('wallet')->findOrFail($payerId);
-        $payee = User::with('wallet')->findOrFail($payeeId);
+        $payer = $this->getUserWhitBalance($payerId);
+        $payee = $this->getUserWhitBalance($payeeId);
 
         if ($payer->isMerchant()) {
-            throw new TransferException('Merchant cannot sendo money.', 403);
+            throw new TransferException('Merchant cannot send money.', Response::HTTP_FORBIDDEN);
         }
 
         if ($this->walletRepository->getBalance($payer->wallet) < $value) {
-            throw new TransferException('Insufficient balance.', 400);
+            throw new TransferException('Insufficient balance.', Response::HTTP_FORBIDDEN);
         }
 
-        $authResponse = Http::get('https://util.devi.tools/api/v2/authorize');
+        $this->authorizer();
+
+        $this->createTransaction($value, $payer, $payee);
+    }
+
+    private function getUserWhitBalance(int $payerId): User
+    {
+        return User::query()
+            ->with('wallet:id,balance,user_id')
+            ->findOrFail($payerId);
+    }
+
+    /**
+     * @throws ConnectionException
+     * @throws TransferException
+     */
+    private function authorizer(): void
+    {
+        $authResponse = Http::get(config('services.authorizer.url'));
         if ($authResponse->failed() || ($authResponse->json('data.authorization') !== true)) {
             throw new TransferException('Unauthorized transfer.', 403);
         }
+    }
 
+    /**
+     * @throws Throwable
+     */
+    private function createTransaction(float $value, User $payer, User $payee): void
+    {
         DB::transaction(function () use ($value, $payer, $payee) {
             $this->walletRepository->decrementBalance($payer->wallet, $value);
             $this->walletRepository->incrementBalance($payee->wallet, $value);
 
-            $notifyResponse = Http::post('https://util.devi.tools/api/v1/notify', [
-                'user_id' => $payee->id,
-                'message' => "Você recebeu R$ {$value} de {$payer->name}",
-            ]);
-
-            if ($notifyResponse->failed()) {
-                throw new TransferException('Failed to send notification.', 500);
-            }
-
-            Transfer::query()->create([
-                'from_wallet_id' => $payer->id,
-                'to_wallet_id' => $payee->id,
-                'value' => $value,
-            ]);
+            $this->createTransferHistory($payer, $payee, $value);
         });
+    }
+
+    private function createTransferHistory(User $payer, User $payee, float $value): void
+    {
+        Transfer::query()->create([
+            'from_wallet_id' => $payer->id,
+            'to_wallet_id' => $payee->id,
+            'value' => $value,
+        ]);
     }
 }

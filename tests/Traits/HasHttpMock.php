@@ -9,28 +9,28 @@ trait HasHttpMock
     protected function authorizerSuccessResponse(): void
     {
         Http::fake([
-            'https://util.devi.tools/api/v2/authorize' => Http::response(['data' => ['authorization' => true]], 200),
+            config('services.authorizer.url') => Http::response(['data' => ['authorization' => true]], 200),
         ]);
     }
 
     protected function authorizerFailureResponse(): void
     {
         Http::fake([
-            'https://util.devi.tools/api/v2/authorize' => Http::response(['data' => ['authorization' => false]], 200),
+            config('services.authorizer.url') => Http::response(['data' => ['authorization' => false]], 200),
         ]);
     }
 
     protected function notifySuccessResponse(): void
     {
         Http::fake([
-            'https://util.devi.tools/api/v1/notify' => Http::response([], 200),
+            config('services.notifier.url') => Http::response([], 200),
         ]);
     }
 
     protected function notifyFailureResponse(): void
     {
         Http::fake([
-            'https://util.devi.tools/api/v1/notify' => Http::response(['error' => 'Service unavailable'], 500),
+            config('services.notifier.url') => Http::response(['error' => 'Service unavailable'], 500),
         ]);
     }
 

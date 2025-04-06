@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'authorizer' => [
+        'url' => env('AUTHORIZER_URL', 'https://util.devi.tools/api/v2/authorize'),
+    ],
+
+    'notifier' => [
+        'url' => env('NOTIFIER_URL', 'https://util.devi.tools/api/v1/notify'),
+    ],
+
 ];

@@ -3,7 +3,7 @@
 namespace Feature\Transfer;
 
 use App\Enums\UserTypeEnum;
-use App\Models\User;
+use App\Models\Transfer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -24,24 +24,22 @@ class TransferStoreTest extends TestCase
         $this->authorizerSuccessResponse();
         $this->notifySuccessResponse();
 
-        /** @var User $payer */
-        $payer = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payer->wallet()->create(['balance' => 100.00]);
+        $payer = $this->createUserWithBalance(UserTypeEnum::Common, 100.00);
+        $payee = $this->createUserWithBalance(UserTypeEnum::Merchant, 0);
 
-        /** @var User $payee */
-        $payee = User::factory()->create(['type' => UserTypeEnum::Merchant]);
-        $payee->wallet()->create(['balance' => 0]);
-
-        $response = $this->postJson(route('transfer.store'), [
+        $this->postJson(route('transfer.store'), [
             'value' => 50.00,
             'payer' => $payer->id,
             'payee' => $payee->id,
-        ]);
-
-        $response->assertStatus(201);
+        ])->assertCreated();
 
         $this->assertEquals(50.00, $payer->wallet->fresh()->balance);
         $this->assertEquals(50.00, $payee->wallet->fresh()->balance);
+        $this->assertDatabaseHas(Transfer::class, [
+            'value' => 50.00,
+            'from_wallet_id' => $payer->id,
+            'to_wallet_id' => $payee->id,
+        ]);
     }
 
     #[Test]
@@ -50,21 +48,20 @@ class TransferStoreTest extends TestCase
         $this->authorizerSuccessResponse();
         $this->notifySuccessResponse();
 
-        /** @var User $payer */
-        $payer = User::factory()->create(['type' => UserTypeEnum::Merchant]);
-        $payer->wallet()->create(['balance' => 100.00]);
+        $payer = $this->createUserWithBalance(UserTypeEnum::Merchant, 100.00);
+        $payee = $this->createUserWithBalance(UserTypeEnum::Common, 0);
 
-        /** @var User $payee */
-        $payee = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payee->wallet()->create(['balance' => 0]);
-
-        $response = $this->postJson(route('transfer.store'), [
+        $this->postJson(route('transfer.store'), [
             'value' => 50.00,
             'payer' => $payer->id,
             'payee' => $payee->id,
-        ]);
+        ])->assertForbidden();
 
-        $response->assertStatus(403);
+        $this->assertDatabaseMissing(Transfer::class, [
+            'value' => 50.00,
+            'from_wallet_id' => $payer->id,
+            'to_wallet_id' => $payee->id,
+        ]);
     }
 
     #[Test]
@@ -73,21 +70,14 @@ class TransferStoreTest extends TestCase
         $this->authorizerSuccessResponse();
         $this->notifySuccessResponse();
 
-        /** @var User $payer */
-        $payer = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payer->wallet()->create(['balance' => 20.00]);
+        $payer = $this->createUserWithBalance(UserTypeEnum::Common, 20.00);
+        $payee = $this->createUserWithBalance(UserTypeEnum::Merchant, 0);
 
-        /** @var User $payee */
-        $payee = User::factory()->create(['type' => UserTypeEnum::Merchant]);
-        $payee->wallet()->create(['balance' => 0]);
-
-        $response = $this->postJson(route('transfer.store'), [
+        $this->postJson(route('transfer.store'), [
             'value' => 50.00,
             'payer' => $payer->id,
             'payee' => $payee->id,
-        ]);
-
-        $response->assertStatus(400);
+        ])->assertForbidden();
     }
 
     #[Test]
@@ -95,21 +85,14 @@ class TransferStoreTest extends TestCase
     {
         $this->authorizerFailureResponse();
 
-        /** @var User $payer */
-        $payer = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payer->wallet()->create(['balance' => 100.00]);
+        $payer = $this->createUserWithBalance(UserTypeEnum::Common, 100.00);
+        $payee = $this->createUserWithBalance(UserTypeEnum::Merchant, 0);
 
-        /** @var User $payee */
-        $payee = User::factory()->create(['type' => UserTypeEnum::Merchant]);
-        $payee->wallet()->create(['balance' => 0]);
-
-        $response = $this->postJson(route('transfer.store'), [
+        $this->postJson(route('transfer.store'), [
             'value' => 50.00,
             'payer' => $payer->id,
             'payee' => $payee->id,
-        ]);
-
-        $response->assertStatus(403);
+        ])->assertForbidden();
 
         $this->assertEquals(100.00, $payer->wallet->fresh()->balance);
         $this->assertEquals(0.00, $payee->wallet->fresh()->balance);
@@ -121,21 +104,14 @@ class TransferStoreTest extends TestCase
         $this->authorizerSuccessResponse();
         $this->notifyFailureResponse();
 
-        /** @var User $payer */
-        $payer = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $payer->wallet()->create(['balance' => 100.00]);
+        $payer = $this->createUserWithBalance(UserTypeEnum::Common, 100.00);
+        $payee = $this->createUserWithBalance(UserTypeEnum::Merchant, 0);
 
-        /** @var User $payee */
-        $payee = User::factory()->create(['type' => UserTypeEnum::Merchant]);
-        $payee->wallet()->create(['balance' => 0]);
-
-        $response = $this->postJson(route('transfer.store'), [
+        $this->postJson(route('transfer.store'), [
             'value' => 50.00,
             'payer' => $payer->id,
             'payee' => $payee->id,
-        ]);
-
-        $response->assertStatus(500);
+        ])->assertServerError();
 
         $this->assertEquals(100.00, $payer->wallet->fresh()->balance);
         $this->assertEquals(0.00, $payee->wallet->fresh()->balance);
@@ -147,17 +123,14 @@ class TransferStoreTest extends TestCase
         $this->authorizerSuccessResponse();
         $this->notifySuccessResponse();
 
-        /** @var User $user */
-        $user = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $user->wallet()->create(['balance' => 100.00]);
+        $user = $this->createUserWithBalance(UserTypeEnum::Common, 100.00);
 
-        $response = $this->postJson(route('transfer.store'), [
+        $this->postJson(route('transfer.store'), [
             'value' => 50.00,
             'payer' => $user->id,
             'payee' => $user->id,
-        ]);
-
-        $response->assertUnprocessable()
+        ])
+            ->assertUnprocessable()
             ->assertJsonValidationErrors(['payee']);
     }
 
@@ -165,8 +138,8 @@ class TransferStoreTest extends TestCase
     #[DataProvider('invalidDataProvider')]
     public function transferFailsWithInvalidData(array $invalidData, array $errors): void
     {
-        $validPayer = User::factory()->create(['type' => UserTypeEnum::Common]);
-        $validPayee = User::factory()->create(['type' => UserTypeEnum::Merchant]);
+        $validPayer = $this->createUserWithBalance(UserTypeEnum::Common, 0);
+        $validPayee = $this->createUserWithBalance(UserTypeEnum::Merchant, 0);
 
         $validData = [
             'value' => 50,
@@ -174,11 +147,10 @@ class TransferStoreTest extends TestCase
             'payee' => $validPayee->id,
         ];
 
-        $data = array_merge($validData, $invalidData);
+        $data = [...$validData, ...$invalidData];
 
-        $response = $this->postJson(route('transfer.store'), $data);
-
-        $response->assertUnprocessable()
+        $this->postJson(route('transfer.store'), $data)
+            ->assertUnprocessable()
             ->assertJsonValidationErrors($errors);
     }
 
