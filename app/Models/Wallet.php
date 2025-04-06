@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property-read int $id
+ * @property-read int $user_id
+ * @property-read int $balance
+ */
 class Wallet extends Model
 {
     use HasFactory;
@@ -20,13 +25,4 @@ class Wallet extends Model
     {
         return $this->belongsTo(User::class);
     }
-
-    protected function balance(): Attribute
-    {
-        return Attribute::make(
-            get: static fn ($value) => number_format($value / 100, 2, ',', '.'),
-            set: static fn ($value) => $value * 100
-        );
-    }
-
 }

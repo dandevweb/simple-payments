@@ -21,6 +21,10 @@ use Laravel\Sanctum\HasApiTokens;
  * @property-read Carbon $created_at
  * @property-read Carbon $updated_at
  * @property-read UserTypeEnum $type
+ * @property-read numeric $balance
+ * @property-read string $document
+ * @property Wallet $wallet
+ *
  */
 class User extends Authenticatable
 {
