@@ -19,6 +19,7 @@ class TransferController extends Controller
      * @throws TransferException
      * @throws Throwable
      * @throws ConnectionException
+     * @see \Tests\Feature\Transfer\TransferStoreTest
      */
     public function store(TransferRequest $request): JsonResponse
     {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Feature\Transfer;
+namespace Tests\Feature\Transfer;
 
 use App\Enums\UserTypeEnum;
 use App\Models\Transfer;
