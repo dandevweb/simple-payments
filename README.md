@@ -37,33 +37,56 @@ Este é um projeto backend desenvolvido como parte de um desafio técnico. Ele i
    ```bash
    cp .env.example .env
    ```
-4. Gere a chave de aplicação do Laravel:
+4. Instale as dependências do Composer:
+   ```bash
+   docker-compose exec app composer update
+   ```
+5. Gere a chave de aplicação do Laravel:
    ```bash
    docker-compose exec app php artisan key:generate
-   ```
-5. Instale as dependências do Composer:
-   ```bash
-   docker-compose exec app composer install
    ```
 6. Configure o banco de dados:
    ```bash
    docker-compose exec app php artisan migrate
    docker-compose exec app php artisan db:seed
    ```
+    - Isso criará os usuários e carteiras iniciais.
+    - A tabela `users` terá 5 usuários comuns com saldo inicial de R$ 1.000,00 e 5 usuários lojistas com salde inicial de 0.
+    - A tabela `wallets` terá 10 carteiras associadas a esses usuários.
+    - A tabela `transfers` será criada para registrar as transferências.
+    - IDs dos usuários:
+      - Usuários comuns: 1 a 5
+      - Usuários lojistas: 6 a 10
+      - 
+7. Inicia a fila para enviar as notificações:
+   ```bash
+   docker-compose exec app php artisan queue:work
+   ```
 
-7. Acesse a API:
-   - URL: `http://localhost:8000/api/transfer`
-   - Método: `POST`
-   - Headers: `Content-Type: application/json`
-   - Body:
-     ```json
-     {
-       "payer": 1,
-       "payee": 2,
-       "value": 100.00
-     }
-     ```
-     
+   8. Acesse a API:
+      - URL: `http://localhost:8000/api/transfer`
+      - Método: `POST`
+      - Headers: `Content-Type: application/json`
+      - Body:
+        ```json
+        {
+          "payer": 1,
+          "payee": 6,
+          "value": 100.00
+        }
+        ```
+        - Ou teste via curl:
+        ```bash
+           curl --location 'http://localhost:8000/api/transfer' \
+           --header 'Accept: application/json' \
+           --header 'Content-Type: application/json' \
+           --data '{
+           "payer": 40,
+           "payee": 53,
+           "value": 100.00
+           }
+           '
+           ```
 ## Testes
 
 Para rodar os testes, execute:

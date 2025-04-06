@@ -101,28 +101,6 @@ class TransferServiceTest extends TestCase
     }
 
     /**
-     * @throws Throwable
-     * @throws ConnectionException
-     */
-    #[Test]
-    public function transferFailsIfNotificationFails(): void
-    {
-        $this->authorizerSuccessResponse();
-        $this->notifyFailureResponse();
-
-        $payer = $this->createUserWithBalance(UserTypeEnum::Common, 100.00);
-        $payee = $this->createUserWithBalance(UserTypeEnum::Common, 0);
-
-        $this->expectException(TransferException::class);
-        $this->expectExceptionMessage('Failed to send notification.');
-
-        $this->transferService->execute(50.00, $payer->id, $payee->id);
-
-        $this->assertEquals(100.00, $payer->wallet->fresh()->balance);
-        $this->assertEquals(0, $payee->wallet->fresh()->balance);
-    }
-
-    /**
      * @throws TransferException
      * @throws Throwable
      * @throws ConnectionException

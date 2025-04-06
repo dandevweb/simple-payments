@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Enums\UserTypeEnum;
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\Wallet;
 use Illuminate\Database\Seeder;
 
@@ -13,18 +12,23 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         User::factory()
-            ->count(10)
-            ->create()
+            ->count(5)
+            ->create(['type' => UserTypeEnum::Common])
             ->each(function ($user) {
-                Wallet::factory()->create(['user_id' => $user->id]);
+                Wallet::factory()->create([
+                    'user_id' => $user->id,
+                    'balance' => 1000,
+                ]);
             });
 
         User::factory()
             ->count(5)
-            ->state(['type' => UserTypeEnum::Merchant])
-            ->create()
+            ->create(['type' => UserTypeEnum::Merchant])
             ->each(function ($user) {
-                Wallet::factory()->create(['user_id' => $user->id]);
+                Wallet::factory()->create([
+                    'user_id' => $user->id,
+                    'balance' => 0,
+                ]);
             });
     }
 }

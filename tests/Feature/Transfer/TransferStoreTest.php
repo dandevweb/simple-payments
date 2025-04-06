@@ -99,25 +99,6 @@ class TransferStoreTest extends TestCase
     }
 
     #[Test]
-    public function transferFailsWhenNotificationFails(): void
-    {
-        $this->authorizerSuccessResponse();
-        $this->notifyFailureResponse();
-
-        $payer = $this->createUserWithBalance(UserTypeEnum::Common, 100.00);
-        $payee = $this->createUserWithBalance(UserTypeEnum::Merchant, 0);
-
-        $this->postJson(route('transfer.store'), [
-            'value' => 50.00,
-            'payer' => $payer->id,
-            'payee' => $payee->id,
-        ])->assertServerError();
-
-        $this->assertEquals(100.00, $payer->wallet->fresh()->balance);
-        $this->assertEquals(0.00, $payee->wallet->fresh()->balance);
-    }
-
-    #[Test]
     public function transferFailsWhenPayerAndPayeeAreTheSame(): void
     {
         $this->authorizerSuccessResponse();
