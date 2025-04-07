@@ -81,8 +81,8 @@ Este é um projeto backend desenvolvido como parte de um desafio técnico. Ele i
            --header 'Accept: application/json' \
            --header 'Content-Type: application/json' \
            --data '{
-           "payer": 40,
-           "payee": 53,
+           "payer": 1,
+           "payee": 6,
            "value": 100.00
            }
            '
