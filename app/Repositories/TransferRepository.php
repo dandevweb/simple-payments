@@ -8,7 +8,7 @@ use App\Repositories\Interfaces\TransferRepositoryInterface;
 
 class TransferRepository implements TransferRepositoryInterface
 {
-    public function createTransfer(User $payer, User $payee, float $value): void
+    public function create(User $payer, User $payee, float $value): Transfer
     {
         $transfer = Transfer::query()
             ->make([
@@ -18,5 +18,7 @@ class TransferRepository implements TransferRepositoryInterface
         $transfer->fromWallet()->associate($payer);
         $transfer->toWallet()->associate($payee);
         $transfer->save();
+
+        return $transfer;
     }
 }

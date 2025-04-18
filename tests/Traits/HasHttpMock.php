@@ -9,14 +9,15 @@ trait HasHttpMock
     protected function authorizerSuccessResponse(): void
     {
         Http::fake([
-            config('services.authorizer.url') => Http::response(['data' => ['authorization' => true]], 200),
+            config('services.authorizer.url') => Http::response([
+                'data' => ['authorization' => true]], 200),
         ]);
     }
 
     protected function authorizerFailureResponse(): void
     {
         Http::fake([
-            config('services.authorizer.url') => Http::response(['data' => ['authorization' => false]], 200),
+            config('services.authorizer.url') => Http::response(['data' => ['authorization' => false]], 403),
         ]);
     }
 

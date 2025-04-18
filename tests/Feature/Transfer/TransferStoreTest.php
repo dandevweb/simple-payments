@@ -2,9 +2,10 @@
 
 namespace Tests\Feature\Transfer;
 
+use App\Enums\AuthorizationLogStatusEnum;
 use App\Enums\UserTypeEnum;
+use App\Models\AuthorizationLog;
 use App\Models\Transfer;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -40,6 +41,10 @@ class TransferStoreTest extends TestCase
             'value' => 50.00,
             'from_wallet_id' => $payer->id,
             'to_wallet_id' => $payee->id,
+        ]);
+        $this->assertDatabaseHas(AuthorizationLog::class, [
+            'status' => AuthorizationLogStatusEnum::Success,
+            'payer_id' => $payer->id,
         ]);
     }
 
@@ -97,6 +102,10 @@ class TransferStoreTest extends TestCase
 
         $this->assertEquals(100.00, $payer->wallet->fresh()->balance);
         $this->assertEquals(0.00, $payee->wallet->fresh()->balance);
+        $this->assertDatabaseHas(AuthorizationLog::class, [
+            'status' => AuthorizationLogStatusEnum::Fail,
+            'payer_id' => $payer->id,
+        ]);
     }
 
     #[Test]
