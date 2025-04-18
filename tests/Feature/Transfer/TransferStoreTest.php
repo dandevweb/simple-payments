@@ -4,6 +4,7 @@ namespace Tests\Feature\Transfer;
 
 use App\Enums\UserTypeEnum;
 use App\Models\Transfer;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;

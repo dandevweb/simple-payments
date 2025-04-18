@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Enums\UserTypeEnum;
+use App\Exceptions\AuthorizationException;
 use App\Exceptions\TransferException;
 use App\Models\User;
 use App\Services\TransferService;
@@ -94,7 +95,7 @@ class TransferServiceTest extends TestCase
         $payer = $this->createUserWithBalance(UserTypeEnum::Common, 100.00);
         $payee = $this->createUserWithBalance(UserTypeEnum::Common, 0);
 
-        $this->expectException(TransferException::class);
+        $this->expectException(AuthorizationException::class);
         $this->expectExceptionMessage('Unauthorized transfer.');
 
         $this->transferService->execute(50.00, $payer->id, $payee->id);

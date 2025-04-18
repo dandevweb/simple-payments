@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\AuthorizationException;
 use App\Exceptions\TransferException;
 use App\Models\User;
 use App\Repositories\Interfaces\TransferRepositoryInterface;
@@ -45,13 +46,13 @@ class TransferService
 
     /**
      * @throws ConnectionException
-     * @throws TransferException
+     * @throws AuthorizationException
      */
     private function authorizer(): void
     {
         $authResponse = Http::get(config('services.authorizer.url'));
         if ($authResponse->failed() || ($authResponse->json('data.authorization') !== true)) {
-            throw new TransferException('Unauthorized transfer.', 403);
+            throw new AuthorizationException('Unauthorized transfer.');
         }
     }
 
