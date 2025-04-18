@@ -13,6 +13,7 @@ use App\Repositories\Interfaces\LogRepositoryInterface;
 use App\Repositories\Interfaces\TransferRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use App\Repositories\Interfaces\WalletRepositoryInterface;
+use App\Strategies\ExternalAuthorizationStrategy;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -93,7 +94,7 @@ class TransferService
             'response_message' => $authResponse->json('data.status'),
         ]);
 
-        if ($authResponse->failed() || ($authResponse->json('data.authorization') !== true)) {
+        if (!ExternalAuthorizationStrategy::authorize()) {
             throw new AuthorizationException('Unauthorized transfer.');
         }
 
