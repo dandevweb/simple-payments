@@ -2,9 +2,10 @@
 
 namespace Tests\Feature\Transfer;
 
-use App\Enums\AuthorizationLogStatusEnum;
+use App\Enums\LogStatusEnum;
 use App\Enums\UserTypeEnum;
-use App\Models\AuthorizationLog;
+use App\Models\Log\AuthorizationLog;
+use App\Models\Log\TransferLog;
 use App\Models\Transfer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -43,8 +44,14 @@ class TransferStoreTest extends TestCase
             'to_wallet_id' => $payee->id,
         ]);
         $this->assertDatabaseHas(AuthorizationLog::class, [
-            'status' => AuthorizationLogStatusEnum::Success,
+            'status' => LogStatusEnum::Success,
             'payer_id' => $payer->id,
+        ]);
+        $this->assertDatabaseHas(TransferLog::class, [
+            'status' => LogStatusEnum::Success,
+            'payer_id' => $payer->id,
+            'payee_id' => $payee->id,
+            'value' => 50.00,
         ]);
     }
 
@@ -67,6 +74,11 @@ class TransferStoreTest extends TestCase
             'value' => 50.00,
             'from_wallet_id' => $payer->id,
             'to_wallet_id' => $payee->id,
+        ]);
+        $this->assertDatabaseHas(TransferLog::class, [
+            'status' => LogStatusEnum::Fail,
+            'payer_id' => $payer->id,
+            'payee_id' => $payee->id,
         ]);
     }
 
@@ -103,7 +115,7 @@ class TransferStoreTest extends TestCase
         $this->assertEquals(100.00, $payer->wallet->fresh()->balance);
         $this->assertEquals(0.00, $payee->wallet->fresh()->balance);
         $this->assertDatabaseHas(AuthorizationLog::class, [
-            'status' => AuthorizationLogStatusEnum::Fail,
+            'status' => LogStatusEnum::Fail,
             'payer_id' => $payer->id,
         ]);
     }

@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
-use App\Enums\AuthorizationLogStatusEnum;
+use App\Enums\LogStatusEnum;
 use App\Exceptions\AuthorizationException;
 use App\Exceptions\TransferException;
-use App\Models\AuthorizationLog;
+use App\Models\Log\AuthorizationLog;
+use App\Models\Log\TransferLog;
+use App\Models\Transfer;
 use App\Models\User;
-use App\Repositories\Interfaces\AuthorizationLogRepositoryInterface;
+use App\Repositories\Interfaces\LogRepositoryInterface;
 use App\Repositories\Interfaces\TransferRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use App\Repositories\Interfaces\WalletRepositoryInterface;
@@ -23,7 +25,7 @@ class TransferService
         protected WalletRepositoryInterface $walletRepository,
         protected UserRepositoryInterface $userRepository,
         protected TransferRepositoryInterface $transferRepository,
-        protected AuthorizationLogRepositoryInterface $authorizationLogRepository,
+        protected LogRepositoryInterface $logRepository,
     ) {}
 
     /**
@@ -32,20 +34,47 @@ class TransferService
      */
     public function execute(float $value, int $payerId, int $payeeId): void
     {
-        $payer = $this->userRepository->findUserWithBalance($payerId);
-        $payee = $this->userRepository->findUserWithBalance($payeeId);
+        $transferLog = $this->logRepository->saveLog(new TransferLog, [
+            'payer_id' => $payerId,
+            'payee_id' => $payeeId,
+            'value' => $value,
+            'status' => LogStatusEnum::Pending,
+        ]);
 
-        if ($payer->isMerchant()) {
-            throw new TransferException('Merchant cannot send money.', Response::HTTP_FORBIDDEN);
+        try {
+            $payer = $this->userRepository->findUserWithBalance($payerId);
+            $payee = $this->userRepository->findUserWithBalance($payeeId);
+
+            if ($payer->isMerchant()) {
+                throw new TransferException('Merchant cannot send money.', Response::HTTP_FORBIDDEN);
+            }
+
+            if ($this->walletRepository->getBalance($payer->wallet) < $value) {
+                throw new TransferException('Insufficient balance.', Response::HTTP_FORBIDDEN);
+            }
+
+            $authLog = $this->authorizer($payerId);
+
+            $transfer = $this->createTransaction($value, $payer, $payee);
+
+            $this->logRepository->saveLog($authLog, [
+                'status' => LogStatusEnum::Success,
+                'transfer_id' => $transfer->id,
+            ]);
+
+            $this->logRepository->saveLog($transferLog, [
+                'status' => LogStatusEnum::Success,
+                'transfer_id' => $transfer->id,
+            ]);
+
+        } catch (Throwable $e) {
+            $this->logRepository->saveLog($transferLog, [
+                'status' => LogStatusEnum::Fail,
+                'error_message' => $e->getMessage(),
+            ]);
+
+            throw $e;
         }
-
-        if ($this->walletRepository->getBalance($payer->wallet) < $value) {
-            throw new TransferException('Insufficient balance.', Response::HTTP_FORBIDDEN);
-        }
-
-        $log = $this->authorizer($payerId);
-
-        $this->createTransaction($value, $payer, $payee, $log);
     }
 
     /**
@@ -56,11 +85,11 @@ class TransferService
     {
         $authResponse = Http::get(config('services.authorizer.url'));
 
-        $log = $this->authorizationLogRepository->createLog([
+        $log = $this->logRepository->saveLog(new AuthorizationLog, [
             'payer_id' => $payerId,
             'status' => $authResponse->successful()
-                ? AuthorizationLogStatusEnum::Success
-                : AuthorizationLogStatusEnum::Fail,
+                ? LogStatusEnum::Success
+                : LogStatusEnum::Fail,
             'response_message' => $authResponse->json('data.status'),
         ]);
 
@@ -74,15 +103,13 @@ class TransferService
     /**
      * @throws Throwable
      */
-    private function createTransaction(float $value, User $payer, User $payee, AuthorizationLog $log): void
+    private function createTransaction(float $value, User $payer, User $payee,): Transfer
     {
-        DB::transaction(function () use ($value, $payer, $payee, $log) {
+        return DB::transaction(function () use ($value, $payer, $payee) {
             $this->walletRepository->decrementBalance($payer->wallet, $value);
             $this->walletRepository->incrementBalance($payee->wallet, $value);
 
-            $this->transferRepository->create($payer, $payee, $value);
-
-            $log->transfer()->associate($this->transferRepository->create($payer, $payee, $value));
+            return $this->transferRepository->create($payer, $payee, $value);
         });
     }
 }

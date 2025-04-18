@@ -2,10 +2,11 @@
 
 namespace Tests\Unit;
 
+use App\Enums\LogStatusEnum;
 use App\Enums\UserTypeEnum;
 use App\Exceptions\AuthorizationException;
 use App\Exceptions\TransferException;
-use App\Models\User;
+use App\Models\Log\TransferLog;
 use App\Services\TransferService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -129,6 +130,11 @@ class TransferServiceTest extends TestCase
         $this->expectException(ModelNotFoundException::class);
 
         $this->transferService->execute(50.00, $payer->id, 999);
+        $this->assertDatabaseHas(TransferLog::class, [
+            'status' => LogStatusEnum::Fail,
+            'payer_id' => $payer->id,
+            'error_message' => 'Model not found: App\Models\User',
+        ]);
     }
 
 }
