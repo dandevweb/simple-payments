@@ -3,8 +3,9 @@
 namespace App\Repositories;
 
 use App\Models\Wallet;
+use App\Repositories\Interfaces\WalletRepositoryInterface;
 
-class WalletRepository
+class WalletRepository implements WalletRepositoryInterface
 {
     public function getBalance(Wallet $wallet): float
     {

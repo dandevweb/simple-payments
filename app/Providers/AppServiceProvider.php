@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Repositories\Interfaces\TransferRepositoryInterface;
+use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Repositories\Interfaces\WalletRepositoryInterface;
+use App\Repositories\TransferRepository;
+use App\Repositories\UserRepository;
 use App\Repositories\WalletRepository;
 use Illuminate\Support\ServiceProvider;
 
@@ -9,14 +14,9 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(
-            WalletRepository::class,
-            fn () => new WalletRepository()
-        );
-    }
+        $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
+        $this->app->bind(TransferRepositoryInterface::class, TransferRepository::class);
+        $this->app->bind(WalletRepositoryInterface::class, WalletRepository::class);
 
-    public function boot(): void
-    {
-        //
     }
 }

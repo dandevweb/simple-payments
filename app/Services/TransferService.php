@@ -3,21 +3,23 @@
 namespace App\Services;
 
 use App\Exceptions\TransferException;
-use App\Models\Transfer;
 use App\Models\User;
-use App\Repositories\WalletRepository;
+use App\Repositories\Interfaces\TransferRepositoryInterface;
+use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Repositories\Interfaces\WalletRepositoryInterface;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
-/**
- * @see \Tests\Unit\TransferServiceTest
- */
 class TransferService
 {
-    public function __construct(protected WalletRepository $walletRepository) {}
+    public function __construct(
+        protected WalletRepositoryInterface $walletRepository,
+        protected UserRepositoryInterface $userRepository,
+        protected TransferRepositoryInterface $transferRepository
+    ) {}
 
     /**
      * @throws TransferException
@@ -25,8 +27,8 @@ class TransferService
      */
     public function execute(float $value, int $payerId, int $payeeId): void
     {
-        $payer = $this->getUserWhitBalance($payerId);
-        $payee = $this->getUserWhitBalance($payeeId);
+        $payer = $this->userRepository->findUserWithBalance($payerId);
+        $payee = $this->userRepository->findUserWithBalance($payeeId);
 
         if ($payer->isMerchant()) {
             throw new TransferException('Merchant cannot send money.', Response::HTTP_FORBIDDEN);
@@ -39,13 +41,6 @@ class TransferService
         $this->authorizer();
 
         $this->createTransaction($value, $payer, $payee);
-    }
-
-    private function getUserWhitBalance(int $payerId): User
-    {
-        return User::query()
-            ->with('wallet:id,balance,user_id')
-            ->findOrFail($payerId);
     }
 
     /**
@@ -69,16 +64,7 @@ class TransferService
             $this->walletRepository->decrementBalance($payer->wallet, $value);
             $this->walletRepository->incrementBalance($payee->wallet, $value);
 
-            $this->createTransferHistory($payer, $payee, $value);
+            $this->transferRepository->createTransfer($payer, $payee, $value);
         });
-    }
-
-    private function createTransferHistory(User $payer, User $payee, float $value): void
-    {
-        Transfer::query()->create([
-            'from_wallet_id' => $payer->id,
-            'to_wallet_id' => $payee->id,
-            'value' => $value,
-        ]);
     }
 }

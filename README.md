@@ -84,8 +84,7 @@ Este é um projeto backend desenvolvido como parte de um desafio técnico. Ele i
            "payer": 1,
            "payee": 6,
            "value": 100.00
-           }
-           '
+           }'
            ```
 ## Testes
 
