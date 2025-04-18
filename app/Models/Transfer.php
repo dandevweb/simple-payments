@@ -24,8 +24,6 @@ class Transfer extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'from_wallet_id',
-        'to_wallet_id',
         'value',
     ];
 
